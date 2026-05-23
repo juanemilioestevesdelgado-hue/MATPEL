@@ -597,7 +597,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                 const batch = writeBatch(db);
                 fullInventory.forEach((item) => {
                     const docRef = doc(db, currentCollection, item.codigo);
-                    batch.set(docRef, { ...item, estado: "", revisado: false, comentarios: "", fotoUrl: "" });
+                    batch.set(docRef, { estado: "", revisado: false, comentarios: "", fotoUrl: "", ...item });
                 });
                 batch.commit();
                 return;
