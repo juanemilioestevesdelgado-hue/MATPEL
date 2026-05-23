@@ -107,11 +107,14 @@ document.addEventListener('DOMContentLoaded', async () => {
                 if (currentUserRole === 'commander') {
                     if (inboxBtn) inboxBtn.style.display = 'flex';
                     if (document.getElementById('manage-users-btn')) document.getElementById('manage-users-btn').style.display = 'flex';
+                    if (document.getElementById('recovery-btn')) document.getElementById('recovery-btn').style.display = 'flex';
                     listenForInbox();
+                    listenForDeletionBackups();
                     if(typeof listenForUsersList === 'function') listenForUsersList();
                 } else {
                     if (inboxBtn) inboxBtn.style.display = 'none';
                     if (document.getElementById('manage-users-btn')) document.getElementById('manage-users-btn').style.display = 'none';
+                    if (document.getElementById('recovery-btn')) document.getElementById('recovery-btn').style.display = 'none';
                 }
                 startRealtimeListener();
             } catch (e) {
@@ -272,6 +275,118 @@ document.addEventListener('DOMContentLoaded', async () => {
         });
     }
 
+    // Deletion Backups and Recovery Logic (for Commander)
+    let recoveryUnsubscribe = null;
+    function listenForDeletionBackups() {
+        if (recoveryUnsubscribe) recoveryUnsubscribe();
+        const recoveryList = document.getElementById('recovery-list');
+        recoveryUnsubscribe = onSnapshot(collection(db, 'deletion_backups'), (snapshot) => {
+            let backups = [];
+            snapshot.forEach(docSnap => {
+                backups.push(docSnap.data());
+            });
+            // Sort by deletedAt descending (most recent first)
+            backups.sort((a, b) => new Date(b.deletedAt) - new Date(a.deletedAt));
+            
+            if (recoveryList) {
+                recoveryList.innerHTML = '';
+                if (backups.length === 0) {
+                    recoveryList.innerHTML = '<p style="text-align: center; color: #64748b; padding: 15px;">No hay registros de borrado total.</p>';
+                } else {
+                    backups.forEach(backup => {
+                        const div = document.createElement('div');
+                        div.style.cssText = 'padding: 15px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; display: flex; justify-content: space-between; align-items: center; gap: 15px; margin-bottom: 10px;';
+                        
+                        const dateFormatted = new Date(backup.deletedAt).toLocaleString('es-ES');
+                        
+                        div.innerHTML = `
+                            <div style="flex: 1; text-align: left;">
+                                <div style="font-size: 0.85rem; color: #64748b; margin-bottom: 4px;">${dateFormatted}</div>
+                                <div style="font-size: 0.95rem; color: var(--text-primary);"><strong>Borrado por:</strong> ${backup.deletedBy}</div>
+                                <div style="font-size: 0.9rem; color: #ef4444; font-weight: 500; margin-top: 4px;"><i class="ph ph-trash"></i> ${backup.count || 0} ítems eliminados</div>
+                            </div>
+                            <div style="display: flex; gap: 8px;">
+                                <button class="restore-backup-btn" data-id="${backup.id}" style="background: #8b5cf6; color: white; border: none; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: 600; display: flex; align-items: center; gap: 6px; font-size: 0.85rem;">
+                                    <i class="ph ph-arrow-counter-clockwise"></i> Recuperar
+                                </button>
+                                <button class="delete-backup-log-btn" data-id="${backup.id}" style="background: none; border: 1px solid #ef4444; color: #ef4444; padding: 8px 10px; border-radius: 6px; cursor: pointer; font-size: 0.85rem;" title="Eliminar del historial">
+                                    <i class="ph ph-trash"></i>
+                                </button>
+                            </div>
+                        `;
+                        recoveryList.appendChild(div);
+                    });
+                    
+                    // Attach listeners to restore buttons
+                    document.querySelectorAll('.restore-backup-btn').forEach(btn => {
+                        btn.addEventListener('click', async (e) => {
+                            const id = e.currentTarget.dataset.id;
+                            const backup = backups.find(b => b.id === id);
+                            if (backup) {
+                                if (confirm(`¿Estás seguro de que deseas recuperar los ${backup.count} ítems borrados por ${backup.deletedBy} el ${new Date(backup.deletedAt).toLocaleString()}? Esto sobrescribirá o agregará los ítems correspondientes.`)) {
+                                    await restoreBackup(backup);
+                                }
+                            }
+                        });
+                    });
+
+                    // Attach listeners to delete backup log buttons
+                    document.querySelectorAll('.delete-backup-log-btn').forEach(btn => {
+                        btn.addEventListener('click', async (e) => {
+                            const id = e.currentTarget.dataset.id;
+                            if (confirm('¿Estás seguro de que deseas eliminar este registro de borrado de forma permanente? No se podrá recuperar.')) {
+                                try {
+                                    const batch = writeBatch(db);
+                                    batch.delete(doc(db, 'deletion_backups', id));
+                                    await batch.commit();
+                                } catch (err) {
+                                    console.error(err);
+                                    alert("Error al eliminar del historial");
+                                }
+                            }
+                        });
+                    });
+                }
+            }
+        }, (error) => {
+            console.error("Recovery Snapshot Error:", error);
+        });
+    }
+
+    async function restoreBackup(backup) {
+        const recoveryModal = document.getElementById('recovery-modal');
+        const restoreBtns = document.querySelectorAll('.restore-backup-btn');
+        restoreBtns.forEach(btn => {
+            btn.disabled = true;
+            btn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Recuperando...';
+        });
+        
+        try {
+            // Restore each item in backup to active collection
+            const batch = writeBatch(db);
+            backup.items.forEach(item => {
+                const itemRef = doc(db, currentCollection, item.codigo || item.id);
+                batch.set(itemRef, item);
+            });
+            
+            // Delete the backup entry so it's consumed
+            batch.delete(doc(db, 'deletion_backups', backup.id));
+            
+            await batch.commit();
+            
+            alert('¡Inventario recuperado exitosamente! Los ítems han sido restaurados.');
+            if (recoveryModal) recoveryModal.classList.add('hidden');
+        } catch (error) {
+            console.error("Error restoring backup:", error);
+            alert("Error al recuperar el inventario.");
+        } finally {
+            restoreBtns.forEach(btn => {
+                btn.disabled = false;
+                btn.innerHTML = '<i class="ph ph-arrow-counter-clockwise"></i> Recuperar';
+            });
+        }
+    }
+
     const manageUsersBtn = document.getElementById('manage-users-btn');
     const manageUsersModal = document.getElementById('manage-users-modal');
     const closeManageUsersModal = document.querySelector('.close-manage-users-modal');
@@ -373,6 +488,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (inboxBtn) inboxBtn.addEventListener('click', () => inboxModal.classList.remove('hidden'));
     if (closeInboxModal) closeInboxModal.addEventListener('click', () => inboxModal.classList.add('hidden'));
     if (inboxModal) inboxModal.addEventListener('click', (e) => { if (e.target === inboxModal) inboxModal.classList.add('hidden'); });
+
+    // Recovery Modal Logic
+    const recoveryBtn = document.getElementById('recovery-btn');
+    const recoveryModal = document.getElementById('recovery-modal');
+    const closeRecoveryModal = document.querySelector('.close-recovery-modal');
+
+    if (recoveryBtn && recoveryModal) {
+        recoveryBtn.addEventListener('click', () => recoveryModal.classList.remove('hidden'));
+        if (closeRecoveryModal) closeRecoveryModal.addEventListener('click', () => recoveryModal.classList.add('hidden'));
+        recoveryModal.addEventListener('click', (e) => { if (e.target === recoveryModal) recoveryModal.classList.add('hidden'); });
+    }
 
     // History Modal Logic
     const historyModal = document.getElementById('history-modal');
@@ -856,6 +982,20 @@ document.addEventListener('DOMContentLoaded', async () => {
             clearDbBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Borrando...';
             clearDbBtn.disabled = true;
             try {
+                // Crear respaldo antes de eliminar los datos
+                if (currentInventoryData && currentInventoryData.length > 0) {
+                    const backupId = `backup_${Date.now()}`;
+                    const backupRef = doc(db, 'deletion_backups', backupId);
+                    await setDoc(backupRef, {
+                        id: backupId,
+                        deletedBy: inventariador || 'Usuario Desconocido',
+                        deletedAt: new Date().toISOString(),
+                        items: currentInventoryData,
+                        count: currentInventoryData.length
+                    });
+                    console.log("Respaldo creado con éxito en deletion_backups:", backupId);
+                }
+
                 const snap = await getDocs(collection(db, currentCollection));
                 const batch = writeBatch(db);
                 snap.forEach((docSnap) => batch.delete(docSnap.ref));

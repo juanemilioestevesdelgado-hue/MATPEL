@@ -67,6 +67,7 @@
                         <button id="logout-btn" style="background: none; border: 1px solid #ef4444; color: #ef4444; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 4px;"><i class="ph ph-sign-out"></i> Salir</button>
                         <button id="inbox-btn" style="display: none; background: #3b82f6; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 4px;"><i class="ph ph-tray"></i> Buzón Solicitudes <span id="inbox-badge" style="background: #ef4444; border-radius: 50%; padding: 0 4px; font-size: 0.7rem; margin-left: 4px;">0</span></button>
                         <button id="manage-users-btn" style="display: none; background: #10b981; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 4px;"><i class="ph ph-users"></i> Administrar Usuarios</button>
+                        <button id="recovery-btn" style="display: none; background: #8b5cf6; border: none; color: white; padding: 4px 8px; border-radius: 4px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 4px;"><i class="ph ph-arrow-counter-clockwise"></i> Historial Borrados</button>
                     </div>
                 </div>
             </div>
@@ -312,6 +313,17 @@
             <h2 style="margin-bottom: 15px; display: flex; align-items: center; gap: 8px;"><i class="ph ph-clock-counter-clockwise"></i> Historial de Cambios</h2>
             <div id="history-list" style="display: flex; flex-direction: column; gap: 10px; max-height: 400px; overflow-y: auto;">
                 <!-- History items here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Deletion Recovery Modal (Commander Only) -->
+    <div id="recovery-modal" class="modal hidden">
+        <div class="modal-content" style="max-width: 600px; padding: 20px;">
+            <span class="close-recovery-modal" style="float: right; cursor: pointer; font-size: 20px;"><i class="ph ph-x"></i></span>
+            <h2 style="margin-bottom: 15px; display: flex; align-items: center; gap: 8px;"><i class="ph ph-arrow-counter-clockwise"></i> Historial de "Borrar Todo"</h2>
+            <div id="recovery-list" style="display: flex; flex-direction: column; gap: 15px; max-height: 400px; overflow-y: auto;">
+                <p style="text-align: center; color: #64748b;">No hay registros de borrado total.</p>
             </div>
         </div>
     </div>
