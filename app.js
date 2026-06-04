@@ -16,13 +16,13 @@ import {
 
 // Firebase configuration for 5ta Brigada
 const firebaseConfig = {
-    apiKey: "AIzaSyBpGkDT1Fz-XqY_H7clwtHYiwyeCsWvrQk",
-    authDomain: "inventario-5ta-brigada.firebaseapp.com",
-    projectId: "inventario-5ta-brigada",
-    storageBucket: "inventario-5ta-brigada.firebasestorage.app",
-    messagingSenderId: "903523003246",
-    appId: "1:903523003246:web:bd4cbd336d7f01ac46ef7f",
-    measurementId: "G-LFWZTZFGRR"
+  apiKey: "AIzaSyASneFY4byB0efiTgpEizWfFrPw_zkeMdU",
+  authDomain: "maptel-ddd04.firebaseapp.com",
+  projectId: "maptel-ddd04",
+  storageBucket: "maptel-ddd04.firebasestorage.app",
+  messagingSenderId: "840492383620",
+  appId: "1:840492383620:web:8f36727888966dc43431d1",
+  measurementId: "G-RVE5J2NLGV"
 };
 
 const app = initializeApp(firebaseConfig);
