@@ -141,7 +141,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         submitBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Ingresando...';
         submitBtn.disabled = true;
 
-        if (user === '17010' && pass === 'Adri135Emi135') {
+        if (user === 'admin' && pass === 'admin') {
             console.log("Commander login success");
             localStorage.setItem('userSession', JSON.stringify({ username: 'Comandante', role: 'commander' }));
             checkSession();
@@ -162,7 +162,7 @@ document.addEventListener('DOMContentLoaded', async () => {
                         }
                     }
                 });
-                if (!found && user === '17010') {
+                if (!found && user === 'admin') {
                     alert("Credenciales de comandante incorrectas.");
                 } else if (!found) {
                     alert("Credenciales incorrectas.");
@@ -185,7 +185,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         submitBtn.innerHTML = '<i class="ph ph-spinner ph-spin"></i> Solicitando...';
         submitBtn.disabled = true;
 
-        if (user === '17010') {
+        if (user === 'admin') {
             alert("No puedes usar este usuario.");
             submitBtn.innerHTML = '<i class="ph ph-user-plus"></i> Solicitar Registro';
             submitBtn.disabled = false;
